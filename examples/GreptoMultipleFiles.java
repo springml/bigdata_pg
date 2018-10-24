@@ -1,3 +1,12 @@
+/**
+mvn compile -e exec:java \
+ -Dexec.mainClass=$MAIN \
+      -Dexec.args="--project=$PROJECT \
+      --stagingLocation=gs://$BUCKET/staging/ \
+      --tempLocation=gs://$BUCKET/staging/ \
+	  --runner=DataflowRunner"
+**/
+  
 package com.google.cloud.training.dataanalyst.javahelp;
 
 import java.io.Serializable;

@@ -1,3 +1,14 @@
+/**
+mvn compile -e exec:java \
+ -Dexec.mainClass=$MAIN \
+      -Dexec.args="--project=$PROJECT \
+      --stagingLocation=gs://$BUCKET/staging/ \
+      --tempLocation=gs://$BUCKET/staging/ \
+      --output=$PROJECT:demos.streamdemo \
+      --input=projects/$PROJECT/topics/streamdemo \
+	  --runner=DataflowRunner"
+**/
+
 // cd ~/training-data-analyst/courses/data_analysis/lab2/javahelp
 // ./run_oncloud4.sh dataflowtesting-218212 dataflow-results-ini/stream-demo-consumer
 

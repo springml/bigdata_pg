@@ -1,3 +1,14 @@
+/**
+mvn compile -e exec:java \
+ -Dexec.mainClass=$MAIN \
+      -Dexec.args="--project=$PROJECT \
+      --stagingLocation=gs://$BUCKET/staging/ \
+      --tempLocation=gs://$BUCKET/staging/ \
+      --output=$PROJECT:demos.streamdemo \
+      --input=projects/$PROJECT/topics/streamdemo \
+	  --runner=DataflowRunner"
+**/
+
 package com.google.cloud.training.dataanalyst.javahelp;
 
 import java.time.Instant;
