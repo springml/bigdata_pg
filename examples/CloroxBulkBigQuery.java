@@ -1,3 +1,15 @@
+/**
+
+mvn compile -e exec:java \
+ -Dexec.mainClass=$MAIN \
+      -Dexec.args="--project=$PROJECT \
+      --stagingLocation=gs://$BUCKET/staging/ \
+      --tempLocation=gs://$BUCKET/staging/ \
+      --qps=101000 \
+      --dataset=$DATASET \
+      --runner=DataflowRunner"
+**/
+
 package com.google.cloud.training.dataanalyst.javahelp;
 
 import java.time.Instant;
@@ -7,6 +19,7 @@ import java.util.List;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.GenerateSequence;
 import org.apache.beam.sdk.io.gcp.bigquery.BigQueryIO;
+import org.apache.beam.sdk.io.gcp.pubsub.PubsubIO;
 import org.apache.beam.sdk.options.Default;
 import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
@@ -44,7 +57,7 @@ public class CloroxBulkBigQuery {
 	}
 
 	@SuppressWarnings("serial")
-	static class FormatTextFn extends DoFn<Long, String> {
+	static class FormatTextFn extends DoFn<String, String> {
 		
 		@ProcessElement
 		public void processElement(@Element Long word, OutputReceiver<String> out) {
@@ -57,13 +70,26 @@ public class CloroxBulkBigQuery {
 	
 	@SuppressWarnings("serial")
 	static class FormatBigQueryFn extends DoFn<String, TableRow> {
+		static long increment = 0;
 		
 		@ProcessElement
 		public void processElement(@Element String word, OutputReceiver<TableRow> out) {
 			
 			TableRow row = new TableRow();
 			
-			row.set("message", word);
+//			row.set("message", word);
+//			
+//			increment++;
+//			
+//			if(increment%1000000 != 0)
+//				row.set("testing", "testing");
+//			else
+//				row.set("testing", "mark");
+			
+
+			row.set("qtr", "1");
+			row.set("sales",  2);
+			row.set("year", Instant.now().toString());
 			
 			out.output(row);
 		}
@@ -76,20 +102,30 @@ public class CloroxBulkBigQuery {
 		
 		Pipeline pipeline = Pipeline.create(options);
 		
+//		List<TableFieldSchema> fields = new ArrayList<>();
+//		fields.add(new TableFieldSchema().setName("message").setType("STRING"));
+//		fields.add(new TableFieldSchema().setName("testing").setType("STRING"));
+//		TableSchema schema = new TableSchema().setFields(fields);
+		
 		List<TableFieldSchema> fields = new ArrayList<>();
-		fields.add(new TableFieldSchema().setName("message").setType("STRING"));
+		fields.add(new TableFieldSchema().setName("qtr").setType("STRING"));
+		fields.add(new TableFieldSchema().setName("sales").setType("INTEGER"));
+		fields.add(new TableFieldSchema().setName("year").setType("STRING"));
 		TableSchema schema = new TableSchema().setFields(fields);
 		
-		PCollection<Long> numbers = pipeline.apply("Trigger",
-				GenerateSequence.from(0L).withRate(options.getQps(), Duration.standardSeconds(1L)));
+		String subscriptionId = "projects/dataflowtesting-218212/subscriptions/PubSubTesting";
+		PCollection<String> text = pipeline.apply("GetMessages", PubsubIO.readStrings().fromSubscription(subscriptionId));
+		
+//		PCollection<Long> numbers = pipeline.apply("Trigger",
+//				GenerateSequence.from(0L).withRate(options.getQps(), Duration.standardSeconds(1L)));
 				
 //				GenerateSequence
 //					.from(0L).to(1000));//withRate(options.getQps(), Duration.standardSeconds(1L)));
 //					.withMaxReadTime(Duration.standardSeconds(1L)));
 		
-		PCollection<String> formatted = numbers.apply("Format", ParDo.of(new FormatTextFn()));
+//		PCollection<String> formatted = text.apply("Format", ParDo.of(new FormatTextFn()));
 		
-        PCollection<TableRow>rows = formatted.apply("FormatToBigQuery", ParDo.of(new FormatBigQueryFn()));
+        PCollection<TableRow>rows = text.apply("FormatToBigQuery", ParDo.of(new FormatBigQueryFn()));
 
         rows.apply("WriteToBigQuery", BigQueryIO.writeTableRows().to(options.getDataset())
         	.withSchema(schema)
